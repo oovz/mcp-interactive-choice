@@ -1,6 +1,6 @@
 {
     "name": "mcp-interactive-choice",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "type": "module",
     "description": "A MCP server for interactive user questions with native UI",
     "main": "dist/index.js",
@@ -30,5 +30,9 @@
         "@types/node": "^20.11.0",
         "typescript": "^5.3.3",
         "vitest": "^4.0.18"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/oovz/mcp-interactive-choice"
     }
 }
