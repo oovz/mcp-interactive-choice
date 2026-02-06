@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Agent - Choice Required</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/styles.css" />
+  <script type="module" src="/src/main.ts" defer></script>
+</head>
+
+<body>
+  <!-- Background visuals -->
+  <div class="bg-gradient"></div>
+
+  <div id="loading" class="overlay">
+    <div class="spinner"></div>
+  </div>
+
+  <main class="app-container">
+    <header>
+      <div class="badge">Decision Required</div>
+      <h1 id="title">User Action Needed</h1>
+    </header>
+
+    <section id="body-container" class="body-text">
+      <div id="body-markdown">
+        <!-- Markdown injected here -->
+      </div>
+    </section>
+
+    <section id="choices-container" class="choices-list">
+      <!-- Buttons injected here -->
+    </section>
+
+    <section id="custom-container" class="custom-input hidden">
+      <label for="custom-text">Something else?</label>
+      <textarea id="custom-text" placeholder="Type your custom response here..."></textarea>
+      <button id="submit-custom" class="btn-primary">Submit Custom Response</button>
+    </section>
+
+    <footer>
+      <p>This decision will be sent back to your AI assistant to continue the task.</p>
+    </footer>
+  </main>
+</body>
+
+</html>
