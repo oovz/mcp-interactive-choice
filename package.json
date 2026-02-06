@@ -1,8 +1,8 @@
 {
     "name": "mcp-interactive-choice",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "type": "module",
-    "description": "MCP server for interactive user questions with native Tauri UI",
+    "description": "A MCP server for interactive user questions with native UI",
     "main": "dist/index.js",
     "bin": {
         "mcp-interactive-choice": "dist/index.js"
