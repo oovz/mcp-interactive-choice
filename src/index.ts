@@ -20,6 +20,8 @@ const program = new Command();
 program
     .option("--timeout <number>", "Default timeout in seconds", "60")
     .option("--binary-path <string>", "Path to the native-ui binary")
+    .option("--stdio", "Ignored for compatibility")
+    .allowUnknownOption()
     .parse(process.argv);
 
 const options = program.opts();
