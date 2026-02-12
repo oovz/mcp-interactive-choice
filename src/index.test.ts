@@ -46,9 +46,14 @@ describe("parseToolResult", () => {
         expect(parseToolResult(stdout)).toBe("Apple");
     });
 
-    it("should return custom_input if provided", () => {
+    it("should return custom_input with prefix if provided", () => {
         const stdout = '{"choice":null,"index":-1,"custom_input":"My Custom"}';
-        expect(parseToolResult(stdout)).toBe("My Custom");
+        expect(parseToolResult(stdout)).toBe("User provided answer: My Custom");
+    });
+
+    it("should return skip message when skipped is true", () => {
+        const stdout = '{"choice":null,"index":-1,"custom_input":null,"skipped":true}';
+        expect(parseToolResult(stdout)).toBe("User skipped the question");
     });
 
     it("should return cancellation message if choice and custom_input are null", () => {

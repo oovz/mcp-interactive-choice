@@ -14,10 +14,11 @@
       {
         "label": "main",
         "title": "Decision Needed",
-        "width": 600,
-        "height": 500,
+        "width": 480,
+        "height": 300,
         "center": true,
-        "resizable": true
+        "resizable": false,
+        "decorations": false
       }
     ],
     "security": {

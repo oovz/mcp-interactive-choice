@@ -1,8 +1,17 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// We must mock the core module since it's used by main.ts
+// Mock the core module since it's used by main.ts
 vi.mock('@tauri-apps/api/core', () => ({
     invoke: vi.fn(),
+}));
+
+// Mock the window module for setSize/center calls
+vi.mock('@tauri-apps/api/window', () => ({
+    getCurrentWindow: vi.fn(() => ({
+        setSize: vi.fn(),
+        center: vi.fn(),
+    })),
+    LogicalSize: vi.fn((w: number, h: number) => ({ width: w, height: h })),
 }));
 
 import { invoke } from '@tauri-apps/api/core';
@@ -12,12 +21,16 @@ describe('Native UI initialization', () => {
     beforeEach(() => {
         document.body.innerHTML = `
       <h1 id="title"></h1>
-      <div id="body-markdown"></div>
-      <div id="choices-container"></div>
-      <div id="custom-container" class="hidden">
-        <textarea id="custom-text"></textarea>
+      <div id="body-container">
+        <div id="body-markdown"></div>
       </div>
-      <div id="loading"></div>
+      <div id="choices-container"></div>
+      <div id="custom-container">
+        <textarea id="custom-text"></textarea>
+        <button id="submit-custom"></button>
+      </div>
+      <button id="skip-btn"></button>
+      <div id="loading" class="overlay"></div>
     `;
         vi.clearAllMocks();
         vi.useFakeTimers();
@@ -51,10 +64,9 @@ describe('Native UI initialization', () => {
         expect(choices[0].classList.contains('recommended')).toBe(true);
     });
 
-    it('shows custom input and focuses it if allowCustom is true', async () => {
+    it('always shows the custom input section (no hidden class)', async () => {
         const mockInputData = {
-            choices: ["Option"],
-            allowCustom: true
+            choices: ["Option"]
         };
 
         vi.mocked(invoke).mockImplementation(async (cmd: string) => {
@@ -66,9 +78,18 @@ describe('Native UI initialization', () => {
 
         const customContainer = document.getElementById('custom-container');
         expect(customContainer?.classList.contains('hidden')).toBe(false);
+    });
 
-        const customText = document.getElementById('custom-text');
-        expect(document.activeElement).toBe(customText);
+    it('hides body-container when no body is provided', async () => {
+        vi.mocked(invoke).mockImplementation(async (cmd: string) => {
+            if (cmd === 'get_input') return JSON.stringify({ title: "Test", choices: ["A"] });
+            return "{}";
+        });
+
+        await initUI();
+
+        const bodyContainer = document.getElementById('body-container');
+        expect(bodyContainer?.classList.contains('hidden')).toBe(true);
     });
 
     it('hides the loading spinner after initialization with delay', async () => {
@@ -81,12 +102,12 @@ describe('Native UI initialization', () => {
         await initPromise;
 
         const loading = document.getElementById('loading');
-        // Should be transparent but not yet hidden immediately
-        expect(loading?.style.opacity).toBe('0');
+        // Should have fade-out class but not yet hidden
+        expect(loading?.classList.contains('fade-out')).toBe(true);
         expect(loading?.classList.contains('hidden')).toBe(false);
 
-        // Fast-forward 300ms
-        vi.advanceTimersByTime(300);
+        // Fast-forward 350ms for the fade-out transition
+        vi.advanceTimersByTime(350);
         expect(loading?.classList.contains('hidden')).toBe(true);
     });
 
@@ -100,5 +121,10 @@ describe('Native UI initialization', () => {
 
         const loading = document.getElementById('loading');
         expect(loading?.classList.contains('hidden')).toBe(true);
+    });
+
+    it('has skip button element present in DOM', () => {
+        const skipBtn = document.getElementById('skip-btn');
+        expect(skipBtn).not.toBeNull();
     });
 });

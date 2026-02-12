@@ -4,25 +4,46 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI Agent - Choice Required</title>
+  <title>Decision Needed</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="/src/styles.css" />
   <script type="module" src="/src/main.ts" defer></script>
 </head>
 
 <body>
-  <!-- Background visuals -->
-  <div class="bg-gradient"></div>
-
-  <div id="loading" class="overlay">
-    <div class="spinner"></div>
+  <!-- Custom Title Bar -->
+  <div class="titlebar" data-tauri-drag-region>
+    <div class="titlebar-label">
+      <svg class="titlebar-icon" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" y1="8" x2="12" y2="12" />
+        <line x1="12" y1="16" x2="12.01" y2="16" />
+      </svg>
+      Decision Needed
+    </div>
+    <div class="titlebar-actions">
+      <button class="titlebar-btn close" id="titlebar-close" aria-label="Close window">
+        <svg viewBox="0 0 14 14">
+          <line x1="2" y1="2" x2="12" y2="12" />
+          <line x1="12" y1="2" x2="2" y2="12" />
+        </svg>
+      </button>
+    </div>
   </div>
 
+  <!-- Loading Overlay -->
+  <div id="loading" class="overlay">
+    <div class="spinner"></div>
+    <span class="loading-label">Loading…</span>
+  </div>
+
+  <!-- Main Content -->
   <main class="app-container">
     <header>
-      <div class="badge">Decision Required</div>
       <h1 id="title">User Action Needed</h1>
     </header>
 
@@ -36,14 +57,16 @@
       <!-- Buttons injected here -->
     </section>
 
-    <section id="custom-container" class="custom-input hidden">
-      <label for="custom-text">Something else?</label>
-      <textarea id="custom-text" placeholder="Type your custom response here..."></textarea>
-      <button id="submit-custom" class="btn-primary">Submit Custom Response</button>
+    <section id="custom-container" class="custom-input">
+      <label for="custom-text">Or type your own answer</label>
+      <div class="custom-row">
+        <textarea id="custom-text" placeholder="Type a custom response…" rows="1"></textarea>
+        <button id="submit-custom" class="btn-primary btn-submit">Send</button>
+      </div>
     </section>
 
     <footer>
-      <p>This decision will be sent back to your AI assistant to continue the task.</p>
+      <button id="skip-btn" class="btn-skip">Skip this question</button>
     </footer>
   </main>
 </body>

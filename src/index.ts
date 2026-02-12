@@ -102,7 +102,9 @@ export function parseToolResult(stdoutData: string): string {
 
     try {
         const result = JSON.parse(cleanedStdout);
-        return result.custom_input || result.choice || "user cancelled the selection";
+        if (result.skipped) return "User skipped the question";
+        if (result.custom_input) return `User provided answer: ${result.custom_input}`;
+        return result.choice || "user cancelled the selection";
     } catch (e) {
         throw new Error(`Error parsing result: ${stdoutData}`);
     }
@@ -125,7 +127,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         tools: [
             {
                 name: "ask_user",
-                description: "Ask the user a question with several choices via a native GUI window. Supports Markdown in the body and a recommended choice.",
+                description: "Ask the user a question with several choices via a native GUI window. Supports Markdown in the body and a recommended choice. The user can also type a custom answer or skip the question entirely.",
                 inputSchema: {
                     type: "object",
                     properties: {
@@ -145,11 +147,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                         recommended: {
                             type: "string",
                             description: "(Optional) One of the exact strings from the 'choices' array that the agent recommends. The UI will highlight this option.",
-                        },
-                        allowCustom: {
-                            type: "boolean",
-                            description: "(Optional) Whether to provide a text area for the user to type a custom response not in the choices list. Defaults to false.",
-                            default: false
                         },
                         timeoutSec: {
                             type: "number",
@@ -176,7 +173,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             body: args.body || "",
             choices,
             recommendedIndex,
-            allowCustom: !!args.allowCustom,
         };
 
         const binaryPath = getBinaryPath();
@@ -192,7 +188,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             });
 
             const timer = setTimeout(() => {
-                child.kill("SIGKILL");
+                child.kill();
                 resolve({
                     content: [{ type: "text", text: "Error: User feedback timed out." }],
                     isError: true,

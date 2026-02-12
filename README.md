@@ -65,12 +65,12 @@ The agent calls this tool when it needs a human decision.
 - `body` (optional): Detailed context in Markdown.
 - `choices` (required): List of strings.
 - `recommended` (optional): One of the strings from `choices` that the agent suggests.
-- `allowCustom` (optional): Boolean to show a text box for custom input.
 - `timeoutSec` (optional): How long to wait (in seconds) before the tool auto-fails.
 
 **Response:**
 - Returns the string value of the selected choice.
-- Returns the custom text if provided.
+- Returns `"User provided answer: {text}"` if the user typed a custom response.
+- Returns `"User skipped the question"` if the user clicked Skip.
 - Returns `"user cancelled the selection"` if the window is closed manually.
 
 ## 🛠️ Development & Debugging
