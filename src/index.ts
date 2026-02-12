@@ -16,12 +16,16 @@ import fs from "fs";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const pkgPath = path.join(__dirname, "..", "package.json");
+const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf-8"));
+const version = pkg.version;
+
 // CLI Arguments for the MCP server itself
 const program = new Command();
 program
     .name("mcp-interactive-choice")
     .description("MCP server for asking user interactive questions")
-    .version("1.0.2")
+    .version(version)
     .option("--timeout <number>", "Default timeout in seconds", "60")
     .option("--binary-path <string>", "Path to the native-ui binary")
     .option("--stdio", "Ignored for compatibility")
@@ -113,7 +117,7 @@ export function parseToolResult(stdoutData: string): string {
 const server = new Server(
     {
         name: "mcp-interactive-choice",
-        version: "1.0.2",
+        version: version,
     },
     {
         capabilities: {

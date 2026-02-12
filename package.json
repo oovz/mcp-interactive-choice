@@ -20,7 +20,9 @@
         "build:ui": "npm run build --workspace=native-ui",
         "build": "npm run build:ui && npm run build:server && node scripts/copy-binaries.js",
         "start": "node dist/index.js",
-        "test": "vitest run"
+        "test": "vitest run",
+        "sync-version": "node scripts/sync-versions.js",
+        "postversion": "npm run sync-version"
     },
     "dependencies": {
         "@modelcontextprotocol/sdk": "^1.0.3",
