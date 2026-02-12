@@ -22,7 +22,7 @@
         "start": "node dist/index.js",
         "test": "vitest run",
         "sync-version": "node scripts/sync-versions.js",
-        "postversion": "npm run sync-version"
+        "version": "npm run sync-version"
     },
     "dependencies": {
         "@modelcontextprotocol/sdk": "^1.0.3",
