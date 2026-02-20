@@ -2,6 +2,8 @@
 
 A Model Context Protocol (MCP) server that allows AI agents to ask questions through a **native window** (built with Tauri), preventing context-breaking interruptions and providing a premium user experience.
 
+![Screenshot](public/screen.png)
+
 ## ✨ Features
 
 - **Native Window**: A native window appears when the agent needs your input.
