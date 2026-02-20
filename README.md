@@ -56,6 +56,23 @@ Update your configuration (e.g., `claude_desktop_config.json`):
 }
 ```
 
+#### Optional: Enforce a server-side timeout globally
+Pass `--timeout <seconds>` to the server to set a fallback timeout for all calls where the agent doesn't supply `timeoutSec`:
+
+```json
+{
+  "mcpServers": {
+    "interactive-choice": {
+      "command": "node",
+      "args": [
+        "/path/to/mcp-interactive-choice/dist/index.js",
+        "--timeout", "120"
+      ]
+    }
+  }
+}
+```
+
 ## 🛠️ Tool: `ask_user`
 
 The agent calls this tool when it needs a human decision.
@@ -65,7 +82,7 @@ The agent calls this tool when it needs a human decision.
 - `body` (optional): Detailed context in Markdown.
 - `choices` (required): List of strings.
 - `recommended` (optional): One of the strings from `choices` that the agent suggests.
-- `timeoutSec` (optional): How long to wait (in seconds) before the tool auto-fails.
+- `timeoutSec` (optional): How long to wait (in seconds) before the tool auto-fails. **If omitted, the tool waits indefinitely.**
 
 **Response:**
 - Returns the string value of the selected choice.
@@ -92,6 +109,18 @@ npm run tauri dev -- -- -- --input '{"title":"Dev Test","choices":["A","B"]}'
 ```bash
 npx -y @modelcontextprotocol/inspector node dist/index.js
 ```
+
+## ⚠️ IDE / Client Compatibility
+
+This server waits **indefinitely** by default. Whether that works depends on your MCP client:
+
+| Client | Behavior |
+|---|---|
+| **Antigravity** (Google) | ✅ No client-side timeout — works perfectly |
+| **VS Code / GitHub Copilot** | ✅ No hard timeout for MCP tool calls; uses cancellation tokens |
+| **Claude Desktop** | ⚠️ Enforces a **60-second** client-side timeout via the MCP TypeScript SDK (`DEFAULT_REQUEST_TIMEOUT_MSEC = 60000`). The tool call will fail if the user doesn't respond in time. |
+| **Cursor** | ⚠️ Also enforces a **60-second** client-side timeout. This is a known limitation being tracked upstream. |
+
 
 ## 📝 License
 MIT

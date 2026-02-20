@@ -26,14 +26,15 @@ program
     .name("mcp-interactive-choice")
     .description("MCP server for asking user interactive questions")
     .version(version)
-    .option("--timeout <number>", "Default timeout in seconds", "60")
+    .option("--timeout <number>", "Default timeout in seconds (omit for no timeout)")
     .option("--binary-path <string>", "Path to the native-ui binary")
     .option("--stdio", "Ignored for compatibility")
     .allowUnknownOption()
     .parse(process.argv);
 
 const options = program.opts();
-const DEFAULT_TIMEOUT = parseInt(options.timeout);
+// undefined means no timeout (wait indefinitely). Set via --timeout <seconds> to enforce a global cap.
+const DEFAULT_TIMEOUT: number | undefined = options.timeout !== undefined ? parseInt(options.timeout) : undefined;
 
 /**
  * Strategy to find the native-ui binary.
@@ -154,7 +155,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                         },
                         timeoutSec: {
                             type: "number",
-                            description: `(Optional) How long to wait for a user response in seconds. Defaults to ${DEFAULT_TIMEOUT}. If exceeded, the tool returns a timeout error.`,
+                            description: "(Optional) How long to wait for a user response in seconds. If omitted, the tool waits indefinitely. If exceeded, the tool returns a timeout error.",
                         }
                     },
                     required: ["choices"],
@@ -168,7 +169,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     if (request.params.name === "ask_user") {
         const args = request.params.arguments as any;
         const choices = args.choices as string[];
-        const timeout = (args.timeoutSec || DEFAULT_TIMEOUT) * 1000;
+        // Resolve timeout: per-call arg → CLI --timeout flag → no timeout (undefined)
+        const timeoutMs: number | undefined =
+            args.timeoutSec != null ? args.timeoutSec * 1000 :
+                DEFAULT_TIMEOUT != null ? DEFAULT_TIMEOUT * 1000 :
+                    undefined;
 
         const recommendedIndex = resolveRecommendedIndex(choices, args.recommended);
 
@@ -191,16 +196,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 stdoutData += data.toString();
             });
 
-            const timer = setTimeout(() => {
+            const timer = timeoutMs != null ? setTimeout(() => {
                 child.kill();
                 resolve({
                     content: [{ type: "text", text: "Error: User feedback timed out." }],
                     isError: true,
                 });
-            }, timeout);
+            }, timeoutMs) : undefined;
 
             child.on("close", (code) => {
-                clearTimeout(timer);
+                if (timer != null) clearTimeout(timer);
                 if (code === 0) {
                     try {
                         const textResult = parseToolResult(stdoutData);
