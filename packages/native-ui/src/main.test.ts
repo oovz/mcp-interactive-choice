@@ -15,7 +15,7 @@ vi.mock('@tauri-apps/api/window', () => ({
 }));
 
 import { invoke } from '@tauri-apps/api/core';
-import { initUI } from './main';
+import { initUI, setupEvents, resetSubmitForTest } from './main';
 
 describe('Native UI initialization', () => {
     beforeEach(() => {
@@ -126,5 +126,76 @@ describe('Native UI initialization', () => {
     it('has skip button element present in DOM', () => {
         const skipBtn = document.getElementById('skip-btn');
         expect(skipBtn).not.toBeNull();
+    });
+
+    describe('Keyboard Shortcuts', () => {
+        beforeEach(() => {
+            resetSubmitForTest();
+            setupEvents();
+        });
+
+        it('submits custom input on Ctrl+Enter when text is present', () => {
+            const customText = document.getElementById('custom-text') as HTMLTextAreaElement;
+            customText.value = 'My custom answer';
+
+            const event = new KeyboardEvent('keydown', {
+                key: 'Enter',
+                ctrlKey: true,
+                bubbles: true
+            });
+
+            customText.dispatchEvent(event);
+
+            expect(invoke).toHaveBeenCalledWith('on_submit', expect.objectContaining({
+                result: expect.stringContaining('My custom answer')
+            }));
+        });
+
+        it('submits custom input on Meta+Enter when text is present', () => {
+            const customText = document.getElementById('custom-text') as HTMLTextAreaElement;
+            customText.value = 'Mac custom answer';
+
+            const event = new KeyboardEvent('keydown', {
+                key: 'Enter',
+                metaKey: true,
+                bubbles: true
+            });
+
+            customText.dispatchEvent(event);
+
+            expect(invoke).toHaveBeenCalledWith('on_submit', expect.objectContaining({
+                result: expect.stringContaining('Mac custom answer')
+            }));
+        });
+
+        it('does not submit on Ctrl+Enter if text is empty or whitespace', () => {
+            const customText = document.getElementById('custom-text') as HTMLTextAreaElement;
+            customText.value = '   ';
+
+            const event = new KeyboardEvent('keydown', {
+                key: 'Enter',
+                ctrlKey: true,
+                bubbles: true
+            });
+
+            customText.dispatchEvent(event);
+
+            expect(invoke).not.toHaveBeenCalledWith('on_submit', expect.anything());
+            expect(customText.classList.contains('shake')).toBe(true);
+        });
+
+        it('does not submit if only Enter is pressed without modifiers', () => {
+            const customText = document.getElementById('custom-text') as HTMLTextAreaElement;
+            customText.value = 'Regular enter press';
+
+            const event = new KeyboardEvent('keydown', {
+                key: 'Enter',
+                bubbles: true
+            });
+
+            customText.dispatchEvent(event);
+
+            expect(invoke).not.toHaveBeenCalledWith('on_submit', expect.anything());
+        });
     });
 });

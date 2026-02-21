@@ -144,6 +144,11 @@ export async function initUI() {
 
 let isSubmitting = false;
 
+// purely for test isolation
+export function resetSubmitForTest() {
+  isSubmitting = false;
+}
+
 export function submit(choice: string | null, index: number) {
   if (isSubmitting) return;
   isSubmitting = true;
@@ -245,36 +250,50 @@ export function submitSkip() {
   invoke('on_submit', { result: JSON.stringify(result) });
 }
 
+export function setupEvents() {
+  const submitCustomBtn = document.getElementById('submit-custom') as HTMLButtonElement;
+  if (submitCustomBtn) {
+    submitCustomBtn.onclick = submitCustom;
+  }
+
+  const customText = document.getElementById('custom-text') as HTMLTextAreaElement;
+  if (customText) {
+    customText.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        submitCustom();
+      }
+    });
+  }
+
+  const skipBtn = document.getElementById('skip-btn') as HTMLButtonElement;
+  if (skipBtn) {
+    skipBtn.onclick = submitSkip;
+  }
+
+  // Wire up custom title bar close button
+  const closeBtn = document.getElementById('titlebar-close') as HTMLButtonElement;
+  if (closeBtn) {
+    closeBtn.addEventListener('click', async () => {
+      try {
+        await invoke('on_submit', {
+          result: JSON.stringify({
+            choice: null,
+            index: -1,
+            custom_input: null
+          })
+        });
+      } catch {
+        // Window may close before promise resolves
+      }
+    });
+  }
+}
+
 // Only run automatically if not in a test environment
 if (typeof window !== 'undefined' && !window.hasOwnProperty('__VITEST__')) {
   const start = () => {
-    const submitCustomBtn = document.getElementById('submit-custom') as HTMLButtonElement;
-    if (submitCustomBtn) {
-      submitCustomBtn.onclick = submitCustom;
-    }
-    const skipBtn = document.getElementById('skip-btn') as HTMLButtonElement;
-    if (skipBtn) {
-      skipBtn.onclick = submitSkip;
-    }
-
-    // Wire up custom title bar close button
-    const closeBtn = document.getElementById('titlebar-close') as HTMLButtonElement;
-    if (closeBtn) {
-      closeBtn.addEventListener('click', async () => {
-        try {
-          await invoke('on_submit', {
-            result: JSON.stringify({
-              choice: null,
-              index: -1,
-              custom_input: null
-            })
-          });
-        } catch {
-          // Window may close before promise resolves
-        }
-      });
-    }
-
+    setupEvents();
     initUI();
   };
 
