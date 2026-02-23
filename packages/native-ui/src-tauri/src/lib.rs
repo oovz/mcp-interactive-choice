@@ -39,7 +39,28 @@ pub fn run() {
             let input = matches.args.get("input").and_then(|arg| arg.value.as_str());
             let input_val = input.unwrap_or("{}").to_string();
             
+            let silent = matches.args.get("silent").map(|arg| arg.occurrences > 0).unwrap_or(false);
+            
             println!("DEBUG: Received CLI input: {}", input_val);
+            println!("DEBUG: Silent mode: {}", silent);
+
+            #[cfg(target_os = "macos")]
+            {
+                if silent {
+                    app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+                }
+            }
+
+            if let Some(main_window) = app.get_webview_window("main") {
+                if !silent {
+                    let _ = main_window.set_focus();
+                } else {
+                    #[cfg(target_os = "windows")]
+                    {
+                        // Some attempt to hide focus
+                    }
+                }
+            }
             
             app.manage(InputState(input_val));
             app.manage(SubmissionState(AtomicBool::new(false)));

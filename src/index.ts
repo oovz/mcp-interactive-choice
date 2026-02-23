@@ -28,6 +28,7 @@ program
     .version(version)
     .option("--timeout <number>", "Default timeout in seconds (omit for no timeout)")
     .option("--binary-path <string>", "Path to the native-ui binary")
+    .option("--silent", "Default to silent mode, preventing window focus steal")
     .option("--stdio", "Ignored for compatibility")
     .allowUnknownOption()
     .parse(process.argv);
@@ -152,10 +153,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                         recommended: {
                             type: "string",
                             description: "(Optional) One of the exact strings from the 'choices' array that the agent recommends. The UI will highlight this option.",
-                        },
-                        timeoutSec: {
-                            type: "number",
-                            description: "(Optional) How long to wait for a user response in seconds. If omitted, the tool waits indefinitely. If exceeded, the tool returns a timeout error.",
                         }
                     },
                     required: ["choices"],
@@ -169,11 +166,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     if (request.params.name === "ask_user") {
         const args = request.params.arguments as any;
         const choices = args.choices as string[];
-        // Resolve timeout: per-call arg → CLI --timeout flag → no timeout (undefined)
-        const timeoutMs: number | undefined =
-            args.timeoutSec != null ? args.timeoutSec * 1000 :
-                DEFAULT_TIMEOUT != null ? DEFAULT_TIMEOUT * 1000 :
-                    undefined;
+        // Resolve timeout: CLI --timeout flag → no timeout (undefined)
+        const timeoutMs: number | undefined = DEFAULT_TIMEOUT != null ? DEFAULT_TIMEOUT * 1000 : undefined;
+
+        const isSilent = options.silent || false;
 
         const recommendedIndex = resolveRecommendedIndex(choices, args.recommended);
 
@@ -185,9 +181,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
 
         const binaryPath = getBinaryPath();
+        const spawnArgs = ["--input", JSON.stringify(inputData)];
+        if (isSilent) {
+            spawnArgs.push("--silent");
+        }
 
         return new Promise((resolve, reject) => {
-            const child = spawn(binaryPath, ["--input", JSON.stringify(inputData)], {
+            const child = spawn(binaryPath, spawnArgs, {
                 stdio: ["ignore", "pipe", "inherit"],
             });
 

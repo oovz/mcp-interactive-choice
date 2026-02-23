@@ -77,6 +77,23 @@ Pass `--timeout <seconds>` to the server to set a fallback timeout for all calls
 }
 ```
 
+#### Optional: Prevent focus stealing globally
+Pass `--silent` to the server to prevent the UI from "stealing" window focus every time it launches (useful if the agent frequently uses the tool):
+
+```json
+{
+  "mcpServers": {
+    "interactive-choice": {
+      "command": "node",
+      "args": [
+        "/path/to/mcp-interactive-choice/dist/index.js",
+        "--silent"
+      ]
+    }
+  }
+}
+```
+
 ## 🛠️ Tool: `ask_user`
 
 The agent calls this tool when it needs a human decision.
@@ -86,7 +103,6 @@ The agent calls this tool when it needs a human decision.
 - `body` (optional): Detailed context in Markdown.
 - `choices` (required): List of strings.
 - `recommended` (optional): One of the strings from `choices` that the agent suggests.
-- `timeoutSec` (optional): How long to wait (in seconds) before the tool auto-fails. **If omitted, the tool waits indefinitely.**
 
 **Response:**
 - Returns the string value of the selected choice.

@@ -1,6 +1,6 @@
 {
     "name": "mcp-interactive-choice",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "type": "module",
     "description": "A MCP server for interactive user questions with native UI",
     "main": "dist/index.js",
