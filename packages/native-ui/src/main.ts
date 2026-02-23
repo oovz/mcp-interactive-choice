@@ -35,15 +35,17 @@ async function fitWindowToContent() {
   try {
     const width = 480;
 
-    // Measure actual content: titlebar + main content + body border (1px * 2)
+    // Measure actual content: titlebar + main content + footer + body border (1px * 2)
     const titlebar = document.querySelector('.titlebar') as HTMLElement;
     const appContainer = document.querySelector('.app-container') as HTMLElement;
+    const footer = document.querySelector('footer') as HTMLElement;
 
     const titlebarH = titlebar ? titlebar.offsetHeight : 0;
     const contentH = appContainer ? appContainer.scrollHeight : 0;
+    const footerH = footer ? footer.offsetHeight : 0;
     const borderH = 2; // body border: 1px top + 1px bottom
 
-    const totalHeight = titlebarH + contentH + borderH;
+    const totalHeight = titlebarH + contentH + footerH + borderH;
     // Clamp between 200 and 700 to avoid extreme sizes
     const height = Math.min(700, Math.max(200, totalHeight));
 
@@ -60,6 +62,11 @@ async function fitWindowToContent() {
  * Show the animated success state after submit.
  */
 function showSuccessState(container: HTMLElement, message: string) {
+  const footer = document.querySelector('footer');
+  if (footer) {
+    footer.style.display = 'none';
+  }
+
   container.innerHTML = `
     <div class="success-state">
       <div class="success-icon">
