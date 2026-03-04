@@ -266,12 +266,34 @@ export function setupEvents() {
   const customText = document.getElementById('custom-text') as HTMLTextAreaElement;
   if (customText) {
     customText.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
         submitCustom();
       }
     });
   }
+
+  document.addEventListener('keydown', (e) => {
+    if (isSubmitting) return;
+
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      const navigables = Array.from(document.querySelectorAll('.choice-btn, #custom-text, #skip-btn')) as HTMLElement[];
+      if (navigables.length === 0) return;
+
+      const activeElement = document.activeElement as HTMLElement;
+      let idx = navigables.indexOf(activeElement);
+
+      e.preventDefault();
+      const direction = e.key === 'ArrowDown' ? 1 : -1;
+
+      if (idx === -1) {
+        idx = direction === 1 ? 0 : navigables.length - 1;
+      } else {
+        idx = (idx + direction + navigables.length) % navigables.length;
+      }
+      navigables[idx]?.focus();
+    }
+  });
 
   const skipBtn = document.getElementById('skip-btn') as HTMLButtonElement;
   if (skipBtn) {

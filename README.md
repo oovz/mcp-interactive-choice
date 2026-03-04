@@ -10,6 +10,7 @@ A Model Context Protocol (MCP) server that allows AI agents to ask questions thr
 
 - **Native Window**: A native window appears when the agent needs your input.
 - **Markdown Support**: Detailed descriptions from the AI are rendered in markdown.
+- **Keyboard Navigation**: Fully accessible via keyboard. Use arrow keys to navigate choices, `Enter` to confirm, and `Shift+Enter` for new lines in custom input.
 - **Cross-Platform**: Supports Windows and macOS.
 
 ## 🚀 Setup & Installation

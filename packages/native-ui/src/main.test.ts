@@ -11,7 +11,7 @@ vi.mock('@tauri-apps/api/window', () => ({
         setSize: vi.fn(),
         center: vi.fn(),
     })),
-    LogicalSize: vi.fn((w: number, h: number) => ({ width: w, height: h })),
+    LogicalSize: class { constructor(public width: number, public height: number) { } },
 }));
 
 import { invoke } from '@tauri-apps/api/core';
@@ -134,13 +134,12 @@ describe('Native UI initialization', () => {
             setupEvents();
         });
 
-        it('submits custom input on Ctrl+Enter when text is present', () => {
+        it('submits custom input on Enter when text is present', () => {
             const customText = document.getElementById('custom-text') as HTMLTextAreaElement;
             customText.value = 'My custom answer';
 
             const event = new KeyboardEvent('keydown', {
                 key: 'Enter',
-                ctrlKey: true,
                 bubbles: true
             });
 
@@ -151,30 +150,12 @@ describe('Native UI initialization', () => {
             }));
         });
 
-        it('submits custom input on Meta+Enter when text is present', () => {
-            const customText = document.getElementById('custom-text') as HTMLTextAreaElement;
-            customText.value = 'Mac custom answer';
-
-            const event = new KeyboardEvent('keydown', {
-                key: 'Enter',
-                metaKey: true,
-                bubbles: true
-            });
-
-            customText.dispatchEvent(event);
-
-            expect(invoke).toHaveBeenCalledWith('on_submit', expect.objectContaining({
-                result: expect.stringContaining('Mac custom answer')
-            }));
-        });
-
-        it('does not submit on Ctrl+Enter if text is empty or whitespace', () => {
+        it('does not submit on Enter if text is empty or whitespace', () => {
             const customText = document.getElementById('custom-text') as HTMLTextAreaElement;
             customText.value = '   ';
 
             const event = new KeyboardEvent('keydown', {
                 key: 'Enter',
-                ctrlKey: true,
                 bubbles: true
             });
 
@@ -184,18 +165,56 @@ describe('Native UI initialization', () => {
             expect(customText.classList.contains('shake')).toBe(true);
         });
 
-        it('does not submit if only Enter is pressed without modifiers', () => {
+        it('does not submit on Shift+Enter', () => {
             const customText = document.getElementById('custom-text') as HTMLTextAreaElement;
-            customText.value = 'Regular enter press';
+            customText.value = 'Multiline \n press';
 
             const event = new KeyboardEvent('keydown', {
                 key: 'Enter',
+                shiftKey: true,
                 bubbles: true
             });
 
             customText.dispatchEvent(event);
 
             expect(invoke).not.toHaveBeenCalledWith('on_submit', expect.anything());
+        });
+
+        it('navigates between elements using Arrow down and Arrow up', () => {
+            const choicesContainer = document.getElementById('choices-container');
+            const btns = [document.createElement('button'), document.createElement('button')];
+            btns[0].className = 'choice-btn';
+            btns[1].className = 'choice-btn';
+            choicesContainer?.appendChild(btns[0]);
+            choicesContainer?.appendChild(btns[1]);
+
+            // Test navigation
+            const eventDown = new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true });
+            document.dispatchEvent(eventDown);
+            expect(document.activeElement).toBe(btns[0]);
+
+            document.dispatchEvent(eventDown);
+            expect(document.activeElement).toBe(btns[1]);
+
+            document.dispatchEvent(eventDown);
+            const customText = document.getElementById('custom-text');
+            expect(document.activeElement).toBe(customText);
+
+            document.dispatchEvent(eventDown);
+            const skipBtn = document.getElementById('skip-btn');
+            expect(document.activeElement).toBe(skipBtn);
+
+            // Wrap around
+            document.dispatchEvent(eventDown);
+            expect(document.activeElement).toBe(btns[0]);
+
+            // Test Arrow up
+            const eventUp = new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true });
+            document.dispatchEvent(eventUp);
+            expect(document.activeElement).toBe(skipBtn);
+
+            // Clean up
+            choicesContainer!.innerHTML = '';
         });
     });
 });
