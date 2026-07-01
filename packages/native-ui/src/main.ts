@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow, LogicalSize } from '@tauri-apps/api/window';
 import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 
 interface InputData {
   title?: string;
@@ -97,7 +98,10 @@ export async function initUI() {
       titleEl.textContent = data.title;
     }
     if (data.body && bodyEl) {
-      bodyEl.innerHTML = await marked.parse(data.body);
+      const rawHtml = await marked.parse(data.body);
+      // Sanitize markdown HTML to prevent XSS from any injected scripts/markup.
+      // marked does not sanitize output; DOMPurify strips dangerous elements/attributes.
+      bodyEl.innerHTML = DOMPurify.sanitize(rawHtml);
     } else if (bodyContainer) {
       bodyContainer.classList.add('hidden');
     }

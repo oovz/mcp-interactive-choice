@@ -92,6 +92,35 @@ describe('Native UI initialization', () => {
         expect(bodyContainer?.classList.contains('hidden')).toBe(true);
     });
 
+    it('sanitizes malicious markdown body to prevent XSS', async () => {
+        const maliciousBody = '<script>alert("xss")</script><img src=x onerror=alert(1)><b>safe</b>';
+        vi.mocked(invoke).mockImplementation(async (cmd: string) => {
+            if (cmd === 'get_input') return JSON.stringify({ title: "Test", body: maliciousBody, choices: ["A"] });
+            return "{}";
+        });
+
+        await initUI();
+
+        const bodyEl = document.getElementById('body-markdown') as HTMLDivElement;
+        // Script tags and onerror handlers must be stripped; safe markup preserved
+        expect(bodyEl.querySelector('script')).toBeNull();
+        expect(bodyEl.querySelector('img')?.getAttribute('onerror')).toBeNull();
+        expect(bodyEl.querySelector('b')?.textContent).toBe('safe');
+    });
+
+    it('renders markdown body content as HTML', async () => {
+        vi.mocked(invoke).mockImplementation(async (cmd: string) => {
+            if (cmd === 'get_input') return JSON.stringify({ title: "Test", body: "**bold** and `code`", choices: ["A"] });
+            return "{}";
+        });
+
+        await initUI();
+
+        const bodyEl = document.getElementById('body-markdown') as HTMLDivElement;
+        expect(bodyEl.querySelector('strong')?.textContent).toBe('bold');
+        expect(bodyEl.querySelector('code')?.textContent).toBe('code');
+    });
+
     it('hides the loading spinner after initialization with delay', async () => {
         vi.mocked(invoke).mockImplementation(async (cmd: string) => {
             if (cmd === 'get_input') return JSON.stringify({ title: "Test" });
