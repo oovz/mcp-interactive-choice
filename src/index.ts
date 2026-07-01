@@ -1,17 +1,13 @@
 #!/usr/bin/env node
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import {
-    CallToolRequestSchema,
-    ListToolsRequestSchema,
-    ErrorCode,
-    McpError,
-} from "@modelcontextprotocol/sdk/types.js";
+import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
 import { spawn } from "child_process";
 import path from "path";
 import { fileURLToPath } from "url";
 import { Command } from "commander";
 import fs from "fs";
+import * as z from "zod";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -35,13 +31,19 @@ program
 
 const options = program.opts();
 // undefined means no timeout (wait indefinitely). Set via --timeout <seconds> to enforce a global cap.
-const DEFAULT_TIMEOUT: number | undefined = options.timeout !== undefined ? parseInt(options.timeout) : undefined;
+// Reject non-positive and non-numeric values: setTimeout clamps NaN/negative to 0, which would
+// kill the native window before the user can respond.
+const parsedTimeout = options.timeout !== undefined ? parseInt(options.timeout, 10) : undefined;
+const DEFAULT_TIMEOUT: number | undefined =
+    parsedTimeout !== undefined && !Number.isNaN(parsedTimeout) && parsedTimeout > 0
+        ? parsedTimeout
+        : undefined;
 
 /**
  * Strategy to find the native-ui binary.
  * 1. Explicit --binary-path flag.
- * 2. Monorepo dev path.
- * 3. npm installation path (bin/native-ui-<platform>-<arch>).
+ * 2. npm installation path (bin/native-ui-<platform>-<arch>).
+ * 3. Monorepo dev path (release, then debug).
  */
 function getBinaryPath(): string {
     if (options.binaryPath) return options.binaryPath;
@@ -109,14 +111,28 @@ export function parseToolResult(stdoutData: string): string {
     try {
         const result = JSON.parse(cleanedStdout);
         if (result.skipped) return "User skipped the question";
-        if (result.custom_input) return `User provided answer: ${result.custom_input}`;
-        return result.choice || "user cancelled the selection";
+        // Use nullish check (not truthy) so an empty-string custom answer is
+        // preserved, consistent with the choice handling below.
+        if (result.custom_input != null) return `User provided answer: ${result.custom_input}`;
+        // Use nullish coalescing so an empty-string choice ("") — a valid
+        // selection — is preserved rather than misreported as cancellation.
+        // The native binary signals cancellation with choice: null.
+        return result.choice ?? "user cancelled the selection";
     } catch (e) {
         throw new Error(`Error parsing result: ${stdoutData}`);
     }
 }
 
-const server = new Server(
+// Zod input schema for the ask_user tool. The SDK converts this to a JSON Schema
+// for the tool listing and validates incoming arguments at the protocol boundary.
+const AskUserSchema = z.object({
+    title: z.string().optional().describe("(Optional) A concise, high-level summary of the decision required."),
+    body: z.string().optional().describe("(Optional) Detailed context or explanation. Supports Markdown (code blocks, lists, etc.) to help the user make an informed choice."),
+    choices: z.array(z.string()).min(1).describe("(Required) A list of predefined options for the user to select from."),
+    recommended: z.string().optional().describe("(Optional) One of the exact strings from the 'choices' array that the agent recommends. The UI will highlight this option."),
+});
+
+const server = new McpServer(
     {
         name: "mcp-interactive-choice",
         version: version,
@@ -128,44 +144,14 @@ const server = new Server(
     }
 );
 
-server.setRequestHandler(ListToolsRequestSchema, async () => {
-    return {
-        tools: [
-            {
-                name: "ask_user",
-                description: "Ask the user a question with several choices via a native GUI window. Supports Markdown in the body and a recommended choice. The user can also type a custom answer or skip the question entirely.",
-                inputSchema: {
-                    type: "object",
-                    properties: {
-                        title: {
-                            type: "string",
-                            description: "(Optional) A concise, high-level summary of the decision required.",
-                        },
-                        body: {
-                            type: "string",
-                            description: "(Optional) Detailed context or explanation. Supports Markdown (code blocks, lists, etc.) to help the user make an informed choice.",
-                        },
-                        choices: {
-                            type: "array",
-                            items: { type: "string" },
-                            description: "(Required) A list of predefined options for the user to select from.",
-                        },
-                        recommended: {
-                            type: "string",
-                            description: "(Optional) One of the exact strings from the 'choices' array that the agent recommends. The UI will highlight this option.",
-                        }
-                    },
-                    required: ["choices"],
-                },
-            },
-        ],
-    };
-});
-
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    if (request.params.name === "ask_user") {
-        const args = request.params.arguments as any;
-        const choices = args.choices as string[];
+server.registerTool(
+    "ask_user",
+    {
+        description: "Ask the user a question with several choices via a native GUI window. Supports Markdown in the body and a recommended choice. The user can also type a custom answer or skip the question entirely.",
+        inputSchema: AskUserSchema,
+    },
+    async (args) => {
+        const choices = args.choices;
         // Resolve timeout: CLI --timeout flag → no timeout (undefined)
         const timeoutMs: number | undefined = DEFAULT_TIMEOUT != null ? DEFAULT_TIMEOUT * 1000 : undefined;
 
@@ -227,7 +213,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             });
 
             child.on("error", (err) => {
-                clearTimeout(timer);
+                if (timer != null) clearTimeout(timer);
                 const message = `Failed to launch interactive window: ${err.message}`;
                 const error = new McpError(ErrorCode.InternalError, message);
                 error.message = message;
@@ -235,12 +221,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             });
         });
     }
-
-    const message = `Tool not found: ${request.params.name}`;
-    const error = new McpError(ErrorCode.MethodNotFound, message);
-    error.message = message;
-    throw error;
-});
+);
 
 async function main() {
     const transport = new StdioServerTransport();
